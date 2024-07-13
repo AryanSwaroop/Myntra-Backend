@@ -32,6 +32,16 @@ const userSchema = new mongoose.Schema({
 
 });
 
+const sellerSchema = new mongoose.Schema({
+  _id:String,
+  product_category : String, 
+  Target_Audience_range : Number, 
+  Target_Audience_Gender : String,
+  Budget : Number,
+  Geographical_Location : String,
+  Campaign_duration : Number
+})
+
 
 const influencerSchema = new mongoose.Schema({
     _id:String,
@@ -55,11 +65,16 @@ const influencerSchema = new mongoose.Schema({
     followersGrowthRate: Number,
     achievements: String,
     bio: String,
-    photo: String
+    photo: String,
+    state: String,
+    city: String,
+    campaignDuration: Number
   });
 
 
 const User = mongoose.model('User', userSchema);
+
+const Seller = mongoose.model('Seller', sellerSchema);
 
 const influencer = mongoose.model('Influencers' , influencerSchema );
 
@@ -74,7 +89,25 @@ userSchema.plugin(findOrCreate);
 //     credentials : true
 // }));
 
-// const Login = mongoose.model("Login", loginSchema);
+
+function saveSeller(data){
+  
+  let seller = new Seller();
+
+  seller._id = `${Date.now()}_${data.product_category}_${data.Geographical_Location}_${data.Budget}`
+  seller.product_category =  data.product_category; 
+  seller.Target_Audience_range =  data.Target_Audience_range; 
+  seller.Target_Audience_Gender =  data.Target_Audience_Gender;
+  seller.Budget =  data.Budget;
+  seller.Geographical_Location =  data.Geographical_Location;
+  seller.Campaign_duration =  data.Campaign_duration;
+
+  const sellerProfile = seller.save();
+
+  console.log(sellerProfile);
+
+}
+
 
 function saveUser(profile){
   
@@ -135,6 +168,10 @@ function SaveInfluencer (Pdata){
       influencerProfile.achievements = Pdata.achievements ;
       influencerProfile.bio = Pdata.bio ;
       influencerProfile.photo = Pdata.photo;
+      influencerProfile.state = Pdata.state;
+      influencerProfile.city =  Pdata.city;
+      influencerProfile.campaignDuration =  Pdata.campaignDuration;
+      
       
       const influData = influencerProfile.save();
   
@@ -153,7 +190,11 @@ function SaveInfluencer (Pdata){
 //saving image file using multer.
 
 app.post('/saveUser', (req,res)=>{
-    saveUser(req.body);
+  saveUser(req.body);
+})
+
+app.post('/saveSeller', (req,res)=>{
+  saveSeller(req.body);
 })
 
 app.post('/dataUpload', (req,res)=>{
