@@ -4,7 +4,8 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const mongoose = require('mongoose');
-const findOrCreate = require('mongoose-findorcreate')
+const findOrCreate = require('mongoose-findorcreate');
+const fetch = require('node-fetch');
 
 app.use(express.json())
 
@@ -35,11 +36,11 @@ const userSchema = new mongoose.Schema({
 const sellerSchema = new mongoose.Schema({
   _id:String,
   product_category : String, 
-  Target_Audience_range : Number, 
+  Target_Audience_range : String, 
   Target_Audience_Gender : String,
   Budget : Number,
   Geographical_Location : String,
-  Campaign_duration : Number
+  Campaign_duration : String
 })
 
 
@@ -56,7 +57,7 @@ const influencerSchema = new mongoose.Schema({
     averageComments: Number,
     averageShares: Number,
     audienceSatisfaction: Number,
-    audienceAge: Number,
+    audienceAge: String,
     audienceType: String,
     audienceGender: String,
     pastCampaignSuccess: Number,
@@ -68,7 +69,7 @@ const influencerSchema = new mongoose.Schema({
     photo: String,
     state: String,
     city: String,
-    campaignDuration: Number
+    campaignDuration: String
   });
 
 
@@ -80,14 +81,12 @@ const influencer = mongoose.model('Influencers' , influencerSchema );
 
 userSchema.plugin(findOrCreate);
 
-
-// app.use(cors(
-//     {
-      
-//     origin:"https://frontend-portfolio-aryan.vercel.app",
-//     methods :"GET,POST,PUT,DELETE",
-//     credentials : true
-// }));
+app.use(cors(
+    { 
+    origin:"https://influencer-psi.vercel.app/",
+    methods :"GET,POST,PUT,DELETE",
+    credentials : true
+}));
 
 
 function saveSeller(data){
@@ -124,19 +123,23 @@ function saveUser(profile){
   
 }
 
+let finalData = [];
+let UsableData = [];
+
+async function handleSortingData(data){
+
+let found = await influencer.find({ productCategory : data.product_category , audienceGender : data.Target_Audience_Gender })
+UsableData.push(found);
+
+}
+
+
 //array pushed data from Photo
 
 var arr = [];
 
 // for parsing MongoDB data to react 
-// app.get("/ProductData" , (req,res)=>{
-//   influencer.find()
-//   .then(Prod => { 
-//     res.json(Prod);
-//   }).catch(err => {
-//     res.json(err);
-//   })
-// })
+
 
 
 function SaveInfluencer (Pdata){
@@ -172,7 +175,6 @@ function SaveInfluencer (Pdata){
       influencerProfile.city =  Pdata.city;
       influencerProfile.campaignDuration =  Pdata.campaignDuration;
       
-      
       const influData = influencerProfile.save();
   
       console.log(influData);
@@ -186,6 +188,18 @@ function SaveInfluencer (Pdata){
 
 //userSchema.plugin(findOrCreate);
 
+async function predict(){
+  
+const response = await fetch('http://127.0.0.1:5000/predict_score', {method: 'POST', body: UsableData});
+const data = JSON.stringify(response);
+
+for(let i = 0; i < data.length; i++){
+  finalData[i] = UsableData[data[i]]
+}
+
+console.log(finalData);
+
+}
 
 //saving image file using multer.
 
@@ -193,8 +207,22 @@ app.post('/saveUser', (req,res)=>{
   saveUser(req.body);
 })
 
-app.post('/saveSeller', (req,res)=>{
+app.post('/saveSeller', async (req,res)=>{
+
   saveSeller(req.body);
+  handleSortingData(req.body);
+
+
+
+})
+
+app.get('/dataGetter' , (req,res) => {
+  setTimeout(()=>{
+    if(finalData.length == 0){
+      res.send(JSON.stringify(UsableData));
+    }
+   res.send(JSON.stringify(finalData));
+  },5000)
 })
 
 app.post('/dataUpload', (req,res)=>{
